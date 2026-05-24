@@ -1,0 +1,19 @@
+name: Deploy to Render
+# 合并到 main 后触发；需要在仓库 Secrets 配 RENDER_DEPLOY_HOOK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 调用 Render Deploy Hook
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+            echo "::warning::未配置 RENDER_DEPLOY_HOOK secret，跳过部署"
+            exit 0
+          fi
+          curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+          echo "Render deploy triggered"

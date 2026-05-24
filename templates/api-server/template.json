@@ -1,0 +1,10 @@
+{
+  "id": "api-server",
+  "name": "Web API 后端",
+  "description": "FastAPI 起手项目，含 pytest 测试 + 自动部署到 Render。适合做后端 API、Webhook、机器人后端。",
+  "tags": ["后端", "Python", "Render"],
+  "required_secrets": [
+    {"name": "RENDER_DEPLOY_HOOK", "description": "Render 的 Deploy Hook URL，部署用"}
+  ],
+  "deploy_target": "Render"
+}

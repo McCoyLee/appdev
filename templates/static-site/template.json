@@ -1,0 +1,8 @@
+{
+  "id": "static-site",
+  "name": "静态网页",
+  "description": "HTML + CSS + JS 三件套，推到 GitHub Pages。适合个人主页、活动页、单页小工具。",
+  "tags": ["前端", "Pages", "新手友好"],
+  "required_secrets": [],
+  "deploy_target": "GitHub Pages"
+}

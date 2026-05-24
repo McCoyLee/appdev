@@ -1,0 +1,12 @@
+{
+  "id": "cron-task",
+  "name": "定时任务",
+  "description": "每天定时跑 Python 脚本，结果发邮件。适合做信息聚合、监控通知、周报邮件。",
+  "tags": ["定时", "Python", "邮件"],
+  "required_secrets": [
+    {"name": "SMTP_USER", "description": "发件邮箱地址，如 xxx@qq.com"},
+    {"name": "SMTP_PASS", "description": "邮箱 SMTP 授权码（不是登录密码）"},
+    {"name": "MAIL_TO", "description": "收件人邮箱（可选，默认发给自己）"}
+  ],
+  "deploy_target": "GitHub Actions (cron)"
+}

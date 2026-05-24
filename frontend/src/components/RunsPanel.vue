@@ -3,10 +3,18 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { actionsApi } from '../api/client'
+import LogStreamDialog from './LogStreamDialog.vue'
 
 const runs = ref([])
 const workflows = ref([])
 const loading = ref(false)
+const logsOpen = ref(false)
+const selectedRun = ref(null)
+
+function openLogs(run) {
+  selectedRun.value = run
+  logsOpen.value = true
+}
 
 async function load() {
   loading.value = true
@@ -72,12 +80,19 @@ onMounted(load)
         </template>
       </el-table-column>
       <el-table-column label="分支" prop="head_branch" width="100" />
-      <el-table-column width="60">
+      <el-table-column width="120">
         <template #default="{ row }">
-          <el-link :href="row.html_url" target="_blank" type="primary">↗</el-link>
+          <el-button size="small" link type="primary" @click="openLogs(row)">看日志</el-button>
+          <el-link :href="row.html_url" target="_blank" type="info" style="margin-left: 6px">↗</el-link>
         </template>
       </el-table-column>
     </el-table>
+
+    <LogStreamDialog
+      v-model="logsOpen"
+      :run-id="selectedRun?.id"
+      :run-name="selectedRun?.name || ''"
+    />
   </div>
 </template>
 

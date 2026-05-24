@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from .api import actions, branches, chat, preview, repo, secrets, templates
+from .api import actions, branches, chat, logs_stream, preview, probe, projects, repo, secrets, templates
 from .core.config import get_settings
 from .core.logging import setup_logging
 
@@ -49,6 +49,9 @@ def create_app() -> FastAPI:
     app.include_router(preview.router)
     app.include_router(branches.router)
     app.include_router(templates.router)
+    app.include_router(projects.router)
+    app.include_router(probe.router)
+    app.include_router(logs_stream.router)
     app.include_router(chat.router)
     return app
 

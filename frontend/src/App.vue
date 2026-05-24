@@ -1,9 +1,11 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Setting } from '@element-plus/icons-vue'
+import { Setting, Plus, ArrowDown } from '@element-plus/icons-vue'
 import Workspace from './views/Workspace.vue'
 import VaultDialog from './components/VaultDialog.vue'
+import NewProjectDialog from './components/NewProjectDialog.vue'
+import RepoSwitcher from './components/RepoSwitcher.vue'
 import { health, repoApi } from './api/client'
 import { useSessionStore } from './stores/session'
 import { useVaultStore } from './stores/vault'
@@ -13,6 +15,20 @@ const vault = useVaultStore()
 const ready = ref(false)
 const status = ref({})
 const vaultOpen = ref(false)
+const newProjectOpen = ref(false)
+
+async function onProjectCreated(repo) {
+  vault.switchRepo(repo)  // 加入 recent 列表 + 设为当前
+  sess.reset()
+  ElMessage.success(`切换到 ${repo}`)
+  await bootstrap()
+}
+
+async function onRepoSwitched(repo) {
+  sess.reset()
+  ElMessage.success(`切换到 ${repo}`)
+  await bootstrap()
+}
 
 async function bootstrap() {
   ready.value = false
@@ -54,14 +70,15 @@ onMounted(bootstrap)
           <el-icon><User /></el-icon>
           {{ sess.user?.login }}
         </el-tag>
-        <el-tag type="primary" effect="dark">
-          {{ sess.repo.full_name }} @ {{ sess.repo.default_branch }}
-        </el-tag>
+        <RepoSwitcher @switched="onRepoSwitched" />
         <el-tag v-if="sess.currentBranch" type="warning" effect="dark">
           <el-icon><Promotion /></el-icon> {{ sess.currentBranch }}
         </el-tag>
       </div>
       <div class="status">
+        <el-button type="primary" size="small" @click="newProjectOpen = true">
+          <el-icon><Plus /></el-icon>&nbsp;新建项目
+        </el-button>
         <el-tag :type="vault.configured ? 'success' : 'warning'" size="small">
           {{ vault.configured ? '本地凭据 ✓' : '用 .env 凭据' }}
         </el-tag>
@@ -75,6 +92,7 @@ onMounted(bootstrap)
       <el-empty v-else description="连接后端中... 如果一直转，点右上角【凭据】按钮配置" />
     </el-main>
     <VaultDialog v-model="vaultOpen" @saved="bootstrap" />
+    <NewProjectDialog v-model="newProjectOpen" @created="onProjectCreated" />
   </el-container>
 </template>
 

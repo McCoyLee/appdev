@@ -2,6 +2,7 @@
 import { ref, nextTick, computed } from 'vue'
 import { marked } from 'marked'
 import { ElMessage } from 'element-plus'
+import PlanCard from './PlanCard.vue'
 import { streamChat } from '../api/chat'
 import { useSessionStore } from '../stores/session'
 
@@ -10,7 +11,6 @@ const input = ref('')
 const sending = ref(false)
 const scroller = ref(null)
 
-// 把内部 messages 渲染为 UI 列表：合并 assistant_text、tool_call、tool_result
 const rendered = computed(() => {
   return sess.messages.map((m) => {
     if (m.role === 'user') return { kind: 'user', text: m.content }
@@ -18,10 +18,21 @@ const rendered = computed(() => {
       return { kind: 'assistant', text: m.content, tools: m.tool_calls || [] }
     }
     if (m.role === 'tool_event') {
+      // propose_plan 工具的结果用专门的 PlanCard 渲染
+      if (m.name === 'propose_plan' && m.ok && m.result?.plan) {
+        return { kind: 'plan', plan: m.result.plan, id: m.tool_call_id || `plan-${m.ts || Date.now()}` }
+      }
       return { kind: 'tool', name: m.name, args: m.args, result: m.result, ok: m.ok }
     }
   })
 })
+
+function onPlanConfirm(payload) {
+  const lines = payload.steps.map((s, i) => `${i + 1}. ${s.title}`)
+  const msg = `已确认计划，请按以下顺序执行：\n${lines.join('\n')}`
+  input.value = msg
+  send()
+}
 
 async function scrollDown() {
   await nextTick()
@@ -60,6 +71,7 @@ async function send() {
             role: 'tool_event',
             name: data.name,
             args: data.arguments,
+            tool_call_id: data.id,
             result: null,
             ok: null,
           })
@@ -115,6 +127,13 @@ async function send() {
       <div v-for="(m, i) in rendered" :key="i" class="msg" :class="m.kind">
         <div v-if="m.kind === 'user'" class="bubble user-bubble">{{ m.text }}</div>
         <div v-else-if="m.kind === 'assistant'" class="bubble assistant-bubble" v-html="renderMd(m.text)"></div>
+        <PlanCard
+          v-else-if="m.kind === 'plan'"
+          :plan="m.plan"
+          :tool-call-id="m.id"
+          @confirm="onPlanConfirm"
+          style="width: 100%"
+        />
         <div v-else-if="m.kind === 'tool'" class="tool-card" :class="{ ok: m.ok, fail: m.ok === false }">
           <div class="tool-head">
             <el-icon><Tools /></el-icon>

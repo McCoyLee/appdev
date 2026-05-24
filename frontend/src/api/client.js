@@ -54,4 +54,15 @@ export const templatesApi = {
   get: (id) => http.get(`/api/templates/${id}`),
 }
 
+export const projectsApi = {
+  create: (body) => http.post('/api/projects/create', body, { timeout: 60000 }),
+  init: (body) => http.post('/api/projects/init', body, { timeout: 60000 }),
+}
+
+export const probeApi = {
+  github: () => http.get('/api/probe/github', { timeout: 10000 }),
+  myRepos: () => http.get('/api/probe/github/repos', { timeout: 10000 }),
+  ai: () => http.post('/api/probe/ai', null, { timeout: 30000 }),
+}
+
 export const health = () => http.get('/healthz')

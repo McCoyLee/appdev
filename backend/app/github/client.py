@@ -90,6 +90,48 @@ class GitHubClient:
     async def get_repo(self, repo: str) -> dict:
         return await self._request("GET", f"/repos/{repo}")
 
+    async def create_repo(
+        self,
+        name: str,
+        *,
+        private: bool = False,
+        description: str = "",
+        auto_init: bool = True,
+        homepage: str = "",
+        org: str | None = None,
+    ) -> dict:
+        """创建一个仓库（用户名下，或指定 org 下）。"""
+        payload = {
+            "name": name,
+            "private": private,
+            "description": description,
+            "auto_init": auto_init,
+            "homepage": homepage,
+        }
+        path = f"/orgs/{org}/repos" if org else "/user/repos"
+        return await self._request("POST", path, json=payload)
+
+    async def enable_pages(self, repo: str, build_type: str = "workflow") -> dict:
+        """启用 GitHub Pages；build_type=workflow 走 Actions（支持任意分支预览）。
+
+        - 若 Pages 已启用：直接返回当前配置（不重新设置 build_type）
+        - 若未启用：POST 创建
+        """
+        existing = await self.get_pages_info(repo)
+        if existing:
+            return existing
+        return await self._request(
+            "POST", f"/repos/{repo}/pages", json={"build_type": build_type}
+        )
+
+    async def open_environment_branches(self, repo: str, environment: str = "github-pages") -> None:
+        """放开 environment 的 deployment branch policy（允许任意分支部署）。"""
+        await self._request(
+            "PUT",
+            f"/repos/{repo}/environments/{environment}",
+            json={"deployment_branch_policy": None},
+        )
+
     # ----------------------------- contents -----------------------------
 
     async def read_file(self, repo: str, path: str, ref: str | None = None) -> dict:

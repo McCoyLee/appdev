@@ -1,0 +1,20 @@
+name: CI
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'ai/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: ruff check .
+      - name: 单元测试（transform 不联网）
+        run: pytest -q

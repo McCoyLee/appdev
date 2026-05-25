@@ -1,0 +1,10 @@
+{
+  "id": "flask-app",
+  "name": "Flask 网站",
+  "description": "Flask + gunicorn 起手项目，含 pytest + 部署到 Render。适合做带页面和表单的小网站、留言板、后台。",
+  "tags": ["后端", "Python", "Flask", "Render"],
+  "required_secrets": [
+    {"name": "RENDER_DEPLOY_HOOK", "description": "Render Deploy Hook URL（部署用）"}
+  ],
+  "deploy_target": "Render"
+}

@@ -15,12 +15,12 @@ const newRepoInput = ref('')
 const currentRepo = computed(() => vault.repo)
 const recent = computed(() => vault.recentRepos.filter((r) => r !== currentRepo.value))
 
-function switchTo(repo) {
+async function switchTo(repo) {
   if (repo === currentRepo.value) {
     dropdownVisible.value = false
     return
   }
-  vault.switchRepo(repo)
+  await vault.switchRepo(repo)
   emit('switched', repo)
   dropdownVisible.value = false
 }
@@ -37,7 +37,7 @@ function addAndSwitch() {
 async function removeRecent(repo) {
   try {
     await ElMessageBox.confirm(`从最近列表移除 ${repo}？仓库本身不会删。`, '确认', { type: 'warning' })
-    vault.removeRecent(repo)
+    await vault.removeRecent(repo)
   } catch {}
 }
 </script>

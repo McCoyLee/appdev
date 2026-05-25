@@ -1,0 +1,4 @@
+flask>=3.0
+gunicorn>=23.0
+pytest>=8.3
+ruff>=0.7

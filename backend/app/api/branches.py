@@ -51,25 +51,35 @@ async def adopt_branch(
         raise HTTPException(400, "只能采纳 ai/* 分支")
 
     strategy = "fast-forward"
+    rebase_info: dict | None = None
     try:
         await gh.fast_forward_merge(repo, base=body.target, head=branch)
     except GitHubError as e:
         if e.status != 422:
             raise HTTPException(e.status, e.message)
-        # base 偏离，退回普通 merge（保留所有 commit + 一个 merge commit）
-        logger.info("ff failed → falling back to merge commit | branch={}", branch)
+        # base 偏离 → 先 squash-rebase 让 ai/* 基于最新 main，再 FF
+        logger.info("ff failed → attempting squash-rebase then FF | branch={}", branch)
         try:
-            await gh.merge_branch(
-                repo,
-                base=body.target,
-                head=branch,
-                message=f"采纳 AI 分支 {branch}",
+            rebase_info = await gh.squash_rebase_branch(
+                repo, ai_branch=branch, target=body.target
             )
-            strategy = "merge-commit"
+            await gh.fast_forward_merge(repo, base=body.target, head=branch)
+            strategy = "rebase-then-ff"
         except GitHubError as e2:
-            if e2.status == 409:
-                raise HTTPException(409, f"合并冲突，需要人工解决：{e2.message}")
-            raise HTTPException(e2.status, e2.message)
+            # 最后兜底：普通 merge commit
+            logger.warning("squash-rebase failed, falling back to merge commit: {}", e2)
+            try:
+                await gh.merge_branch(
+                    repo,
+                    base=body.target,
+                    head=branch,
+                    message=f"采纳 AI 分支 {branch}",
+                )
+                strategy = "merge-commit"
+            except GitHubError as e3:
+                if e3.status == 409:
+                    raise HTTPException(409, f"合并冲突，需要人工解决：{e3.message}")
+                raise HTTPException(e3.status, e3.message)
 
     try:
         await gh.delete_branch(repo, branch)
@@ -92,6 +102,7 @@ async def adopt_branch(
         "adopted_from": branch,
         "target": body.target,
         "strategy": strategy,
+        "rebase_info": rebase_info,
         "pages_dispatched": pages_dispatched,
     }
 

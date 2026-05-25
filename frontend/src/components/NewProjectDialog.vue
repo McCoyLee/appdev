@@ -149,10 +149,10 @@ function stepLabel(s) {
   }[s] || s
 }
 
-function switchToRepo() {
+async function switchToRepo() {
   const repo = progress.value.result?.repo
   if (!repo) return
-  vault.update({ repo })
+  await vault.update({ repo })
   emit('created', repo)
   emit('update:modelValue', false)
 }

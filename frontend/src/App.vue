@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { Setting, Plus, ArrowDown } from '@element-plus/icons-vue'
 import Workspace from './views/Workspace.vue'
 import VaultDialog from './components/VaultDialog.vue'
+import UnlockDialog from './components/UnlockDialog.vue'
 import NewProjectDialog from './components/NewProjectDialog.vue'
 import RepoSwitcher from './components/RepoSwitcher.vue'
 import { health, repoApi } from './api/client'
@@ -16,22 +17,14 @@ const ready = ref(false)
 const status = ref({})
 const vaultOpen = ref(false)
 const newProjectOpen = ref(false)
-
-async function onProjectCreated(repo) {
-  vault.switchRepo(repo)  // 加入 recent 列表 + 设为当前
-  sess.reset()
-  ElMessage.success(`切换到 ${repo}`)
-  await bootstrap()
-}
-
-async function onRepoSwitched(repo) {
-  sess.reset()
-  ElMessage.success(`切换到 ${repo}`)
-  await bootstrap()
-}
+const unlockOpen = ref(false)
 
 async function bootstrap() {
   ready.value = false
+  if (vault.locked) {
+    unlockOpen.value = true
+    return
+  }
   try {
     const { data } = await health()
     status.value = data
@@ -55,6 +48,19 @@ async function bootstrap() {
   }
 }
 
+async function onProjectCreated(repo) {
+  await vault.switchRepo(repo)
+  sess.reset()
+  ElMessage.success(`切换到 ${repo}`)
+  await bootstrap()
+}
+
+async function onRepoSwitched(repo) {
+  sess.reset()
+  ElMessage.success(`切换到 ${repo}`)
+  await bootstrap()
+}
+
 onMounted(bootstrap)
 </script>
 
@@ -76,11 +82,11 @@ onMounted(bootstrap)
         </el-tag>
       </div>
       <div class="status">
-        <el-button type="primary" size="small" @click="newProjectOpen = true">
+        <el-button type="primary" size="small" @click="newProjectOpen = true" :disabled="!ready">
           <el-icon><Plus /></el-icon>&nbsp;新建项目
         </el-button>
-        <el-tag :type="vault.configured ? 'success' : 'warning'" size="small">
-          {{ vault.configured ? '本地凭据 ✓' : '用 .env 凭据' }}
+        <el-tag :type="vault.locked ? 'danger' : (vault.isEncrypted ? 'success' : 'warning')" size="small">
+          {{ vault.locked ? '🔒 已锁定' : (vault.isEncrypted ? '🔐 已加密' : vault.configured ? '📝 明文凭据' : '用 .env 凭据') }}
         </el-tag>
         <el-button :icon="Setting" link size="small" @click="vaultOpen = true" style="color: #f3f4f6">
           凭据
@@ -89,9 +95,10 @@ onMounted(bootstrap)
     </el-header>
     <el-main class="main">
       <Workspace v-if="ready" />
-      <el-empty v-else description="连接后端中... 如果一直转，点右上角【凭据】按钮配置" />
+      <el-empty v-else-if="!unlockOpen" description="连接后端中... 如果一直转，点右上角【凭据】按钮配置" />
     </el-main>
     <VaultDialog v-model="vaultOpen" @saved="bootstrap" />
+    <UnlockDialog v-model="unlockOpen" @unlocked="bootstrap" />
     <NewProjectDialog v-model="newProjectOpen" @created="onProjectCreated" />
   </el-container>
 </template>

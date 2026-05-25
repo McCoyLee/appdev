@@ -1,0 +1,23 @@
+name: CI
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'ai/**']
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: lint
+        run: ruff check .
+      - name: import 检查（不真连 Telegram）
+        env:
+          TELEGRAM_BOT_TOKEN: "123:dummy"
+        run: python -c "import bot; bot.build_app(); print('OK: bot 可构建')"

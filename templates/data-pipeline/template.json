@@ -1,0 +1,8 @@
+{
+  "id": "data-pipeline",
+  "name": "数据流水线",
+  "description": "定时抓数据 → 处理 → 存回仓库 + artifact。适合做数据聚合、价格监控、榜单抓取、RSS 汇总。",
+  "tags": ["定时", "Python", "数据"],
+  "required_secrets": [],
+  "deploy_target": "GitHub Actions (cron)"
+}

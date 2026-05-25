@@ -409,6 +409,88 @@ class GitHubClient:
             payload["commit_message"] = message
         return await self._request("POST", f"/repos/{repo}/merges", json=payload)
 
+    async def compare_refs(self, repo: str, base: str, head: str) -> dict:
+        """返回 GitHub 对两 ref 的比较：status / commits / files。"""
+        return await self._request("GET", f"/repos/{repo}/compare/{base}...{head}")
+
+    async def squash_rebase_branch(self, repo: str, ai_branch: str, target: str) -> dict:
+        """
+        把 ai_branch 的所有改动 squash 到一个新 commit，基于 target HEAD。
+
+        - 用 compare API 拿 ai_branch vs target 的 changed files
+        - 取 target HEAD 的 tree 作为 base_tree
+        - 对每个 changed file 创建新 blob（内容来自 ai_branch）
+        - 生成新 tree + 新 commit（parent = target HEAD）
+        - force-update ai_branch 指向新 commit
+
+        之后 fast_forward_merge(target ← ai_branch) 一定能成。
+        缺点：丢失 ai_branch 的中间 commit 历史（squash 成一个）。
+        """
+        cmp = await self.compare_refs(repo, target, ai_branch)
+        status = cmp.get("status")  # identical / ahead / behind / diverged
+
+        if status in ("identical",):
+            return {"action": "noop", "status": status}
+        if status == "ahead":
+            # ai_branch 已经包含 target 全部 commits → 直接 FF 即可
+            return {"action": "no_rebase_needed", "status": status}
+
+        files = cmp.get("files", [])
+        if not files:
+            return {"action": "noop", "status": status}
+
+        target_ref = await self._request("GET", f"/repos/{repo}/git/ref/heads/{target}")
+        target_sha = target_ref["object"]["sha"]
+        target_commit = await self._request("GET", f"/repos/{repo}/git/commits/{target_sha}")
+        target_tree = target_commit["tree"]["sha"]
+
+        tree_entries: list[dict] = []
+        for f in files:
+            path = f["filename"]
+            if f["status"] == "removed":
+                # 在新 tree 里删除该路径（sha=null）
+                tree_entries.append(
+                    {"path": path, "mode": "100644", "type": "blob", "sha": None}
+                )
+                continue
+            # 其它（added/modified/renamed）：拿 ai_branch 上的内容
+            file_data = await self.read_file(repo, path, ref=ai_branch)
+            content = file_data.get("content", "") if isinstance(file_data, dict) else ""
+            blob = await self._request(
+                "POST",
+                f"/repos/{repo}/git/blobs",
+                json={"content": content, "encoding": "utf-8"},
+            )
+            tree_entries.append(
+                {"path": path, "mode": "100644", "type": "blob", "sha": blob["sha"]}
+            )
+
+        new_tree = await self._request(
+            "POST",
+            f"/repos/{repo}/git/trees",
+            json={"base_tree": target_tree, "tree": tree_entries},
+        )
+        new_commit = await self._request(
+            "POST",
+            f"/repos/{repo}/git/commits",
+            json={
+                "message": f"squash-rebase {ai_branch} onto {target} ({len(files)} files)",
+                "tree": new_tree["sha"],
+                "parents": [target_sha],
+            },
+        )
+        await self._request(
+            "PATCH",
+            f"/repos/{repo}/git/refs/heads/{ai_branch}",
+            json={"sha": new_commit["sha"], "force": True},
+        )
+        return {
+            "action": "squash-rebased",
+            "status": status,
+            "new_head": new_commit["sha"],
+            "files_changed": len(files),
+        }
+
     # ----------------------------- secrets -----------------------------
 
     async def _repo_public_key(self, repo: str) -> dict:

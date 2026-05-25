@@ -1,0 +1,11 @@
+{
+  "id": "telegram-bot",
+  "name": "Telegram 机器人",
+  "description": "python-telegram-bot 起手项目，本地 polling 调试 / 线上 webhook 部署到 Render。适合做聊天机器人、通知 bot、查询助手。",
+  "tags": ["机器人", "Python", "Render"],
+  "required_secrets": [
+    {"name": "TELEGRAM_BOT_TOKEN", "description": "找 @BotFather 创建机器人拿到的 token"},
+    {"name": "RENDER_DEPLOY_HOOK", "description": "Render Deploy Hook URL（部署用，可选）"}
+  ],
+  "deploy_target": "Render"
+}

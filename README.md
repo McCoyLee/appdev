@@ -2,7 +2,13 @@
 
 让没有编程基础的人，打开浏览器就能用自然语言让 AI 给自己造应用——小到一个工具页面，大到带后端 + CI + 定时任务的正经项目。所有代码、运行、密钥都托管在用户**自己的** GitHub 仓库 + GitHub Actions 上，本平台不存任何业务数据。
 
-> 设计文档：[开发大纲.md](./开发大纲.md) | 开发进度：[进度.md](./进度.md)
+> 📖 文档导航：
+> [CLAUDE.md](./CLAUDE.md) 项目接力/导航 ·
+> [开发大纲.md](./开发大纲.md) 设计 ·
+> [进度.md](./进度.md) 逐步进度 ·
+> [docs/testing.md](./docs/testing.md) 测试验收 ·
+> [docs/desktop.md](./docs/desktop.md) 桌面端 ·
+> [docs/roadmap.md](./docs/roadmap.md) 未来计划
 
 ---
 

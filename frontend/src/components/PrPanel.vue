@@ -7,6 +7,31 @@ import { prsApi, branchesApi } from '../api/client'
 const prs = ref([])
 const state = ref('open')
 const loading = ref(false)
+const checksMap = ref({})  // { [prNumber]: 'success'|'failure'|'pending'|'none'|'loading' }
+
+const CHECK_META = {
+  success: { type: 'success', text: '✓ CI' },
+  failure: { type: 'danger', text: '✗ CI' },
+  pending: { type: 'warning', text: '… CI' },
+  none: { type: 'info', text: '无 CI' },
+  loading: { type: 'info', text: '…' },
+}
+
+async function loadChecks() {
+  const map = {}
+  prs.value.forEach((p) => { map[p.number] = 'loading' })
+  checksMap.value = map
+  await Promise.all(
+    prs.value.map(async (p) => {
+      try {
+        const { data } = await prsApi.checks(p.number)
+        checksMap.value = { ...checksMap.value, [p.number]: data.overall }
+      } catch {
+        checksMap.value = { ...checksMap.value, [p.number]: 'none' }
+      }
+    })
+  )
+}
 
 // 新建 PR
 const aiBranches = ref([])
@@ -80,6 +105,7 @@ async function load() {
     ])
     prs.value = prResp.data.prs || []
     aiBranches.value = (brResp.data.branches || []).map((b) => b.name)
+    loadChecks()  // 不 await，徽章异步填充，不挡列表渲染
   } catch (e) {
     ElMessage.error('加载失败：' + (e.response?.data?.detail || e.message))
   } finally {
@@ -228,6 +254,16 @@ onMounted(load)
       <el-table-column label="状态" width="80">
         <template #default="{ row }">
           <el-tag :type="prStateTag(row).type" size="small">{{ prStateTag(row).text }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="CI" width="62">
+        <template #default="{ row }">
+          <el-tag
+            v-if="checksMap[row.number]"
+            :type="(CHECK_META[checksMap[row.number]] || CHECK_META.none).type"
+            size="small"
+            effect="plain"
+          >{{ (CHECK_META[checksMap[row.number]] || CHECK_META.none).text }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="分支" prop="head" width="110" show-overflow-tooltip />

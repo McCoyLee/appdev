@@ -9,7 +9,7 @@
 ## 当前状态（截至 2026-05-31）
 
 - **M0~M3 全部完成**（26 个任务）+ **M4-1~M4-7**（PR 协作闭环 / PWA / diff / agent PR 工具 / 拆包 / 行内评论 / 读反馈）已做
-- 后端 26 个端点（+`/api/prs` 7 个）/ AI 18 个工具（+list_prs/comment_pr/read_pr_feedback/merge_pr）/ 前端 13 个组件（+PrPanel）/ 6 个模板 / Tauri 骨架（未编译）/ PWA（manifest+sw，可安装）
+- 后端 27 个端点（+`/api/prs` 8 个）/ AI 18 个工具（+list_prs/comment_pr/read_pr_feedback/merge_pr）/ 前端 13 个组件（+PrPanel）/ 6 个模板 / Tauri 骨架（未编译）/ PWA（manifest+sw，可安装）
 - 全部已推送 `McCoyLee/appdev`（M4 最新 commit 见 git log）；本地与远端同步
 
 ## 技术栈
@@ -49,7 +49,7 @@ backend/app/
 │   ├── chat.py             # POST /api/chat —— SSE 流式 agent 对话（核心）
 │   ├── projects.py         # 新建项目（create/init/create-stream）
 │   ├── branches.py         # 采纳/丢弃 ai/* 分支（FF→rebase→merge 三级）
-│   ├── prs.py              # M4 PR 协作：列表/详情(文件+CI+评论+行内)/开/留言/行内评论/合并/关闭
+│   ├── prs.py              # M4 PR 协作：列表/详情(文件+CI+评论+行内)/checks/开/留言/行内评论/合并/关闭
 │   ├── preview.py          # 预览部署 + 一键放开 Pages 分支策略
 │   ├── probe.py            # 凭据连通性探测（github/ai/repos）
 │   ├── logs_stream.py      # workflow 日志 SSE 实时流

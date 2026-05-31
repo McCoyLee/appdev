@@ -173,6 +173,25 @@ async def get_pr(
     }
 
 
+@router.get("/{number}/checks")
+async def pr_checks(
+    number: int,
+    repo: str = Depends(require_repo),
+    gh: GitHubClient = Depends(github_client),
+):
+    """只拿某 PR 的 CI 汇总状态（列表页每行懒加载红绿徽章用，比 /{number} 轻）。"""
+    try:
+        pr = await gh.get_pr(repo, number)
+        head_sha = pr["head"]["sha"]
+        combined = await gh.get_combined_status(repo, head_sha)
+        check_runs = await gh.list_check_runs(repo, head_sha)
+    except GitHubNotFound:
+        raise HTTPException(404, f"PR #{number} 不存在")
+    except GitHubError as e:
+        raise HTTPException(e.status, e.message)
+    return _checks_summary(combined, check_runs)
+
+
 class CreatePrIn(BaseModel):
     head: str
     base: str = "main"

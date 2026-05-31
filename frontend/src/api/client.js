@@ -52,6 +52,7 @@ export const branchesApi = {
 export const prsApi = {
   list: (state = 'open', repo) => http.get('/api/prs', { params: { state, repo } }),
   get: (number, repo) => http.get(`/api/prs/${number}`, { params: { repo } }),
+  checks: (number, repo) => http.get(`/api/prs/${number}/checks`, { params: { repo } }),
   create: (body, repo) => http.post('/api/prs', body, { params: { repo } }),
   comment: (number, text, repo) =>
     http.post(`/api/prs/${number}/comment`, { body: text }, { params: { repo } }),

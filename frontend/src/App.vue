@@ -111,8 +111,21 @@ html, body, #app { height: 100%; margin: 0; }
   background: #1f2937; color: #f3f4f6;
   height: 56px !important; padding: 0 20px;
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; }
-.repo-info { display: flex; align-items: center; gap: 8px; flex: 1; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; white-space: nowrap; }
+.repo-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; flex-wrap: wrap; }
 .status { display: flex; align-items: center; gap: 6px; }
-.main { padding: 0; background: #f5f7fa; }
+.main { padding: 0; background: #f5f7fa; overflow: auto; }
+
+/* 窄屏：顶栏允许换行 + 收紧间距，避免按钮被挤出屏幕 */
+@media (max-width: 860px) {
+  .topbar {
+    height: auto !important;
+    min-height: 56px;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 8px 12px;
+  }
+  .brand { font-size: 15px; }
+  .status { margin-left: auto; }
+}
 </style>

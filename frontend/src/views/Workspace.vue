@@ -61,4 +61,16 @@ const sideTab = ref('preview')
 :deep(.side-tabs .el-tabs__content) { flex: 1; overflow: hidden; min-height: 0; }
 :deep(.side-tabs .el-tab-pane) { height: 100%; overflow: auto; }
 :deep(.side-tabs .el-tabs__nav-wrap)::after { height: 1px; }
+
+/* 窄屏（手机/竖屏平板）：左右两栏改上下堆叠，整页可滚 */
+@media (max-width: 860px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(60vh, auto) minmax(70vh, auto);
+    height: auto;
+    min-height: calc(100vh - 56px);
+    padding: 8px;
+    gap: 8px;
+  }
+}
 </style>

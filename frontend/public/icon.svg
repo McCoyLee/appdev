@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1f2937"/>
+  <g fill="none" stroke="#34d399" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <!-- chip body -->
+    <rect x="156" y="156" width="200" height="200" rx="28"/>
+    <!-- pins -->
+    <path d="M196 156V120 M256 156V120 M316 156V120"/>
+    <path d="M196 356V392 M256 356V392 M316 356V392"/>
+    <path d="M156 196H120 M156 256H120 M156 316H120"/>
+    <path d="M356 196H392 M356 256H392 M356 316H392"/>
+  </g>
+  <text x="256" y="290" font-family="-apple-system, Segoe UI, Roboto, sans-serif"
+        font-size="96" font-weight="700" fill="#f3f4f6" text-anchor="middle">AI</text>
+</svg>

@@ -8,9 +8,9 @@
 
 ## 当前状态（截至 2026-05-31）
 
-- **M0~M3 全部完成**（26 个任务）+ **M4-1 PR 协作工作流**已做
-- 后端 25 个端点（+`/api/prs` 6 个）/ AI 13 个工具 / 前端 13 个组件（+PrPanel）/ 6 个模板 / Tauri 骨架（未编译）
-- M0~M3 已推送 `McCoyLee/appdev`（commit `e92462e`）；M4-1 待提交
+- **M0~M3 全部完成**（26 个任务）+ **M4-1 PR 协作** + **M4-2 PWA/响应式**已做
+- 后端 25 个端点（+`/api/prs` 6 个）/ AI 13 个工具 / 前端 13 个组件（+PrPanel）/ 6 个模板 / Tauri 骨架（未编译）/ PWA（manifest+sw，可安装）
+- M0~M3 已推送 `McCoyLee/appdev`（commit `e92462e`）；M4-1/M4-2 本地已提交，待推送
 
 ## 技术栈
 
@@ -124,7 +124,7 @@ scripts/                    # smoke_*.py 烟雾测试 + init_template.py + dev.s
 
 1. 桌面机上真编译 Tauri + PyInstaller sidecar，做到「双击即用」
 2. ~~PR 列表 + 多人协作~~ ✅ M4-1 已做；可继续做 PR review（行内 comment / approve）
-3. 移动端响应式 / PWA
+3. ~~移动端响应式 / PWA~~ ✅ M4-2 已做（手写 manifest+sw，可安装；窄屏堆叠）
 4. 多用户 SaaS（用户隔离 + 配额 + 计费）
 5. 国内 GitHub 加速反代内置
 

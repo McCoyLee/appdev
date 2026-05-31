@@ -20,6 +20,9 @@ conda run -n appdev python scripts/smoke_sse.py
 
 # 4. PR 协作工作流（建分支→开 PR→列表→详情→评论→合并→清理，自清理）
 conda run -n appdev python scripts/smoke_pr.py        # 结尾 ✅ smoke_pr PASS
+
+# 5. AI agent 的 PR 协作工具（list/comment/merge，直打 dispatch 不经 LLM）
+conda run -n appdev python scripts/smoke_pr_tools.py  # 结尾 ✅ smoke_pr_tools PASS
 ```
 
 通过标志：步骤带 ✓ / 结尾 `ALL OK` / `✅ done`。这三个过了说明「GitHub API + AI agent + SSE」核心链路完好。

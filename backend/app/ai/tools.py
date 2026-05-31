@@ -160,6 +160,61 @@ TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
         "function": {
+            "name": "list_prs",
+            "description": "列出仓库的 Pull Request（默认只看 open）。返回每个 PR 的编号/标题/分支/状态。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "state": {
+                        "type": "string",
+                        "enum": ["open", "closed", "all"],
+                        "default": "open",
+                    },
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "comment_pr",
+            "description": "在某个 PR 上发一条讨论评论（多人协作时回复 review 意见用）。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "number": {"type": "integer", "description": "PR 编号"},
+                    "body": {"type": "string", "description": "评论内容"},
+                },
+                "required": ["number", "body"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "merge_pr",
+            "description": (
+                "合并一个 PR（默认 squash）。只在用户明确同意合并、且 CI 通过时才调用；"
+                "默认会删掉被合并的 ai/* 分支。不确定就先问用户。"
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "number": {"type": "integer", "description": "PR 编号"},
+                    "method": {
+                        "type": "string",
+                        "enum": ["squash", "merge", "rebase"],
+                        "default": "squash",
+                    },
+                },
+                "required": ["number"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "dispatch_workflow",
             "description": "触发一个 GitHub Actions workflow 运行。workflow 是文件名如 ci.yml。",
             "parameters": {
@@ -394,6 +449,54 @@ async def _open_pr(gh: GitHubClient, repo: str, args: dict) -> Any:
     return {"number": pr["number"], "html_url": pr["html_url"], "state": pr["state"]}
 
 
+async def _list_prs(gh: GitHubClient, repo: str, args: dict) -> Any:
+    state = args.get("state", "open")
+    if state not in ("open", "closed", "all"):
+        raise ValueError("state 只能是 open / closed / all")
+    prs = await gh.list_prs(repo, state=state)
+    return [
+        {
+            "number": p["number"],
+            "title": p["title"],
+            "state": p["state"],
+            "head": p["head"]["ref"],
+            "base": p["base"]["ref"],
+            "user": p["user"]["login"] if p.get("user") else None,
+            "html_url": p["html_url"],
+        }
+        for p in prs
+    ]
+
+
+async def _comment_pr(gh: GitHubClient, repo: str, args: dict) -> Any:
+    number = _need(args, "number")
+    body = _need(args, "body")
+    c = await gh.create_pr_comment(repo, int(number), body)
+    return {"ok": True, "html_url": c["html_url"]}
+
+
+async def _merge_pr(gh: GitHubClient, repo: str, args: dict) -> Any:
+    number = int(_need(args, "number"))
+    method = args.get("method", "squash")
+    if method not in ("squash", "merge", "rebase"):
+        raise ValueError("method 只能是 squash / merge / rebase")
+    pr = await gh.get_pr(repo, number)
+    head_ref = pr["head"]["ref"]
+    result = await gh.merge_pr(repo, number, method=method)
+    branch_deleted = False
+    if head_ref.startswith("ai/"):
+        try:
+            await gh.delete_branch(repo, head_ref)
+            branch_deleted = True
+        except GitHubError:
+            pass
+    return {
+        "merged": result.get("merged", True),
+        "sha": result.get("sha"),
+        "branch_deleted": branch_deleted,
+    }
+
+
 async def _dispatch_workflow(gh: GitHubClient, repo: str, args: dict) -> Any:
     await gh.dispatch_workflow(
         repo,
@@ -593,6 +696,9 @@ HANDLERS: dict[str, Handler] = {
     "write_files": _write_files,
     "ensure_branch": _ensure_branch,
     "open_pr": _open_pr,
+    "list_prs": _list_prs,
+    "comment_pr": _comment_pr,
+    "merge_pr": _merge_pr,
     "dispatch_workflow": _dispatch_workflow,
     "list_workflows": _list_workflows,
     "list_runs": _list_runs,

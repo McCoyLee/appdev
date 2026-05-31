@@ -6,6 +6,7 @@ import RepoTree from '../components/RepoTree.vue'
 import SecretsPanel from '../components/SecretsPanel.vue'
 import RunsPanel from '../components/RunsPanel.vue'
 import TemplatesPanel from '../components/TemplatesPanel.vue'
+import PrPanel from '../components/PrPanel.vue'
 
 const sideTab = ref('preview')
 </script>
@@ -25,6 +26,9 @@ const sideTab = ref('preview')
         </el-tab-pane>
         <el-tab-pane label="密码本" name="secrets">
           <SecretsPanel />
+        </el-tab-pane>
+        <el-tab-pane label="协作" name="prs">
+          <PrPanel />
         </el-tab-pane>
         <el-tab-pane label="运行" name="runs">
           <RunsPanel />

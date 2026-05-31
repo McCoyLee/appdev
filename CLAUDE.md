@@ -6,11 +6,11 @@
 
 让没有编程基础的人在浏览器里用自然语言让 AI 改自己的 GitHub 仓库：AI 读/改代码 → 跑 GitHub Actions CI → 自动部署预览 → 用户点「就这版」一键采纳。后端无状态，一切真相在用户自己的 GitHub 仓库。
 
-## 当前状态（截至 2026-05-25）
+## 当前状态（截至 2026-05-31）
 
-- **M0~M3 全部完成**（26 个任务），已推送 GitHub `McCoyLee/appdev`，最新 commit `e92462e`
-- 后端 19 个端点 / AI 13 个工具 / 前端 10+ 组件 / 6 个模板 / Tauri 骨架（未编译）
-- 本地与远端完全同步，工作区干净
+- **M0~M3 全部完成**（26 个任务）+ **M4-1 PR 协作工作流**已做
+- 后端 25 个端点（+`/api/prs` 6 个）/ AI 13 个工具 / 前端 13 个组件（+PrPanel）/ 6 个模板 / Tauri 骨架（未编译）
+- M0~M3 已推送 `McCoyLee/appdev`（commit `e92462e`）；M4-1 待提交
 
 ## 技术栈
 
@@ -49,6 +49,7 @@ backend/app/
 │   ├── chat.py             # POST /api/chat —— SSE 流式 agent 对话（核心）
 │   ├── projects.py         # 新建项目（create/init/create-stream）
 │   ├── branches.py         # 采纳/丢弃 ai/* 分支（FF→rebase→merge 三级）
+│   ├── prs.py              # M4 PR 协作：列表/详情(文件+CI+评论)/开/留言/合并/关闭
 │   ├── preview.py          # 预览部署 + 一键放开 Pages 分支策略
 │   ├── probe.py            # 凭据连通性探测（github/ai/repos）
 │   ├── logs_stream.py      # workflow 日志 SSE 实时流
@@ -72,6 +73,7 @@ frontend/src/
 │   ├── PlanCard.vue        # 计划 checklist
 │   ├── NewProjectDialog.vue RepoSwitcher.vue VaultDialog.vue
 │   ├── UnlockDialog.vue    # 加密解锁
+│   ├── PrPanel.vue         # M4 协作标签页：PR 列表 + 详情抽屉 + 提/评论/合并
 │   ├── LogStreamDialog.vue RepoTree.vue SecretsPanel.vue RunsPanel.vue TemplatesPanel.vue
 ├── api/client.js           # axios + 拦截器注入凭据 header
 ├── api/chat.js             # fetch SSE 客户端
@@ -93,8 +95,9 @@ scripts/                    # smoke_*.py 烟雾测试 + init_template.py + dev.s
     → 工具：get_project_outline / read_file / write_files / run_ci / propose_plan ...
   → AI 在 ai/<desc> 分支改代码，run_ci 跑 GitHub Actions 验证（失败自修复）
   → agent 结束自动 dispatch pages.yml 部署预览
-  → 前端 PreviewPanel iframe 显示，用户点「就这版」
-    → POST /api/branches/{branch}/adopt → FF（失败则 squash-rebase→FF→merge 兜底）
+  → 前端 PreviewPanel iframe 显示，用户二选一：
+    A) 点「就这版」→ POST /api/branches/{branch}/adopt → FF（失败则 squash-rebase→FF→merge 兜底）
+    B) 点「提个 PR」→ POST /api/prs → 走「协作」标签页 review/留言/合并（M4-1）
 ```
 
 ## 开发铁律（沿用）
@@ -120,7 +123,7 @@ scripts/                    # smoke_*.py 烟雾测试 + init_template.py + dev.s
 ## 下一步（M4 候选，见进度.md 末尾）
 
 1. 桌面机上真编译 Tauri + PyInstaller sidecar，做到「双击即用」
-2. PR 列表 + 多人协作
+2. ~~PR 列表 + 多人协作~~ ✅ M4-1 已做；可继续做 PR review（行内 comment / approve）
 3. 移动端响应式 / PWA
 4. 多用户 SaaS（用户隔离 + 配额 + 计费）
 5. 国内 GitHub 加速反代内置

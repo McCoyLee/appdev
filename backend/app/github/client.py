@@ -292,19 +292,100 @@ class GitHubClient:
         return created["object"]["sha"]
 
     async def open_pr(
-        self, repo: str, title: str, head: str, base: str, body: str = ""
+        self,
+        repo: str,
+        title: str,
+        head: str,
+        base: str,
+        body: str = "",
+        draft: bool = False,
     ) -> dict:
         return await self._request(
             "POST",
             f"/repos/{repo}/pulls",
-            json={"title": title, "head": head, "base": base, "body": body},
+            json={
+                "title": title,
+                "head": head,
+                "base": base,
+                "body": body,
+                "draft": draft,
+            },
         )
 
-    async def merge_pr(self, repo: str, number: int, method: str = "squash") -> dict:
+    async def list_prs(
+        self,
+        repo: str,
+        state: str = "open",
+        head: str | None = None,
+        base: str | None = None,
+        per_page: int = 50,
+    ) -> list[dict]:
+        """列出 PR（默认 open，按更新时间倒序）。"""
+        params: dict = {
+            "state": state,
+            "per_page": per_page,
+            "sort": "updated",
+            "direction": "desc",
+        }
+        if head:
+            # GitHub 要求 head 形如 owner:branch
+            owner = repo.split("/")[0]
+            params["head"] = head if ":" in head else f"{owner}:{head}"
+        if base:
+            params["base"] = base
+        return await self._request("GET", f"/repos/{repo}/pulls", params=params)
+
+    async def get_pr(self, repo: str, number: int) -> dict:
+        return await self._request("GET", f"/repos/{repo}/pulls/{number}")
+
+    async def list_pr_files(self, repo: str, number: int, per_page: int = 100) -> list[dict]:
+        return await self._request(
+            "GET",
+            f"/repos/{repo}/pulls/{number}/files",
+            params={"per_page": per_page},
+        )
+
+    async def list_pr_comments(self, repo: str, number: int) -> list[dict]:
+        """PR 上的讨论评论（issue comments）。"""
+        return await self._request(
+            "GET",
+            f"/repos/{repo}/issues/{number}/comments",
+            params={"per_page": 100},
+        )
+
+    async def create_pr_comment(self, repo: str, number: int, body: str) -> dict:
+        """在 PR 上发一条讨论评论。"""
+        return await self._request(
+            "POST",
+            f"/repos/{repo}/issues/{number}/comments",
+            json={"body": body},
+        )
+
+    async def get_combined_status(self, repo: str, ref: str) -> dict:
+        """某个 ref 的合并 commit status（legacy status API）。"""
+        return await self._request("GET", f"/repos/{repo}/commits/{ref}/status")
+
+    async def list_check_runs(self, repo: str, ref: str) -> list[dict]:
+        """某个 ref 的 check runs（GitHub Actions 走这个）。"""
+        data = await self._request(
+            "GET", f"/repos/{repo}/commits/{ref}/check-runs"
+        )
+        return data.get("check_runs", [])
+
+    async def merge_pr(
+        self,
+        repo: str,
+        number: int,
+        method: str = "squash",
+        commit_title: str | None = None,
+    ) -> dict:
+        payload: dict = {"merge_method": method}
+        if commit_title:
+            payload["commit_title"] = commit_title
         return await self._request(
             "PUT",
             f"/repos/{repo}/pulls/{number}/merge",
-            json={"merge_method": method},
+            json=payload,
         )
 
     async def close_pr(self, repo: str, number: int) -> dict:

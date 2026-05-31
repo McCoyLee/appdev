@@ -49,6 +49,17 @@ export const branchesApi = {
   discard: (branch, repo) => http.post('/api/branches/discard', { branch }, { params: { repo } }),
 }
 
+export const prsApi = {
+  list: (state = 'open', repo) => http.get('/api/prs', { params: { state, repo } }),
+  get: (number, repo) => http.get(`/api/prs/${number}`, { params: { repo } }),
+  create: (body, repo) => http.post('/api/prs', body, { params: { repo } }),
+  comment: (number, text, repo) =>
+    http.post(`/api/prs/${number}/comment`, { body: text }, { params: { repo } }),
+  merge: (number, method = 'squash', repo) =>
+    http.post(`/api/prs/${number}/merge`, { method, delete_branch: true, dispatch_pages: true }, { params: { repo } }),
+  close: (number, repo) => http.post(`/api/prs/${number}/close`, null, { params: { repo } }),
+}
+
 export const templatesApi = {
   list: () => http.get('/api/templates'),
   get: (id) => http.get(`/api/templates/${id}`),

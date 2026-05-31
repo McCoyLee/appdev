@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import { previewApi, branchesApi } from '../api/client'
+import { previewApi, branchesApi, prsApi } from '../api/client'
 import { useSessionStore } from '../stores/session'
 
 const sess = useSessionStore()
@@ -105,6 +105,26 @@ async function discard() {
   }
 }
 
+const openingPr = ref(false)
+async function openPr() {
+  if (!isAiBranch.value) return
+  openingPr.value = true
+  try {
+    const { data } = await prsApi.create({
+      head: activeBranch.value,
+      base: sess.repo?.default_branch || 'main',
+    })
+    ElMessage.success(
+      (data.reused ? '已有 PR #' : '已提 PR #') + data.pr.number + '，去「协作」标签 review'
+    )
+    window.open(data.pr.html_url, '_blank')
+  } catch (e) {
+    ElMessage.error('提 PR 失败：' + (e.response?.data?.detail || e.message))
+  } finally {
+    openingPr.value = false
+  }
+}
+
 const fixingPolicy = ref(false)
 async function fixBranchPolicy() {
   fixingPolicy.value = true
@@ -177,6 +197,11 @@ onUnmounted(stopPolling)
         </el-button>
         <el-button type="danger" size="large" plain @click="discard" class="big-btn">
           ✗&nbsp; 丢弃
+        </el-button>
+      </div>
+      <div v-if="isAiBranch" class="row pr-row">
+        <el-button size="small" link type="primary" :loading="openingPr" @click="openPr">
+          🔀&nbsp;想让别人先看看？提个 PR
         </el-button>
       </div>
     </div>
@@ -254,6 +279,7 @@ onUnmounted(stopPolling)
 .branch-name { margin-left: 4px; }
 .tool-row { color: #6b7280; }
 .action-row { padding-top: 4px; }
+.pr-row { justify-content: center; padding-top: 2px; }
 .big-btn {
   flex: 1;
   font-size: 14px;

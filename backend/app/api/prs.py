@@ -26,6 +26,17 @@ router = APIRouter(prefix="/api/prs", tags=["prs"])
 PAGES_WORKFLOW = "pages.yml"
 
 
+MAX_PATCH_CHARS = 20000
+
+
+def _truncate_patch(patch: str | None) -> str | None:
+    if patch is None:
+        return None
+    if len(patch) > MAX_PATCH_CHARS:
+        return patch[:MAX_PATCH_CHARS] + "\n… (diff 过长，已截断，去 GitHub 看完整)"
+    return patch
+
+
 def _summarize_pr(pr: dict) -> dict:
     return {
         "number": pr["number"],
@@ -132,6 +143,8 @@ async def get_pr(
                 "status": f["status"],
                 "additions": f["additions"],
                 "deletions": f["deletions"],
+                # 二进制文件没有 patch；超大 patch 截断防止前端卡死
+                "patch": _truncate_patch(f.get("patch")),
             }
             for f in files
         ],

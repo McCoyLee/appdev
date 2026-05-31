@@ -20,6 +20,20 @@ const detail = ref(null)
 const detailLoading = ref(false)
 const commentText = ref('')
 const merging = ref(false)
+const openFiles = ref(new Set())
+
+function toggleFile(name) {
+  const s = new Set(openFiles.value)
+  s.has(name) ? s.delete(name) : s.add(name)
+  openFiles.value = s
+}
+
+function diffLineClass(ln) {
+  if (ln.startsWith('@@')) return 'hunk'
+  if (ln.startsWith('+')) return 'plus'
+  if (ln.startsWith('-')) return 'minus'
+  return ''
+}
 
 async function load() {
   loading.value = true
@@ -72,6 +86,7 @@ async function openDetail(number) {
   detailOpen.value = true
   detailLoading.value = true
   detail.value = null
+  openFiles.value = new Set()
   try {
     const resp = await prsApi.get(number)
     detail.value = resp.data
@@ -198,9 +213,14 @@ onMounted(load)
           <h4>改动文件（{{ detail.files.length }}）</h4>
           <ul class="files">
             <li v-for="f in detail.files" :key="f.filename">
-              <span :class="['fstat', f.status]">{{ f.status[0].toUpperCase() }}</span>
-              {{ f.filename }}
-              <span class="add">+{{ f.additions }}</span> <span class="del">-{{ f.deletions }}</span>
+              <div class="frow" :class="{ clickable: f.patch }" @click="toggleFile(f.filename)">
+                <span class="caret" v-if="f.patch">{{ openFiles.has(f.filename) ? '▾' : '▸' }}</span>
+                <span class="caret" v-else>&nbsp;</span>
+                <span :class="['fstat', f.status]">{{ f.status[0].toUpperCase() }}</span>
+                <span class="fname">{{ f.filename }}</span>
+                <span class="add">+{{ f.additions }}</span> <span class="del">-{{ f.deletions }}</span>
+              </div>
+              <pre v-if="f.patch && openFiles.has(f.filename)" class="diff"><code><span v-for="(ln, i) in f.patch.split('\n')" :key="i" :class="diffLineClass(ln)">{{ ln || ' ' }}</span></code></pre>
             </li>
           </ul>
 
@@ -250,7 +270,22 @@ onMounted(load)
 h4 { margin: 14px 0 6px; font-size: 13px; color: #6b7280; font-weight: 500; }
 .files, .checks { list-style: none; padding: 0; margin: 0; font-size: 13px; }
 .files li, .checks li { padding: 3px 0; }
-.fstat { display: inline-block; width: 16px; text-align: center; border-radius: 3px; font-size: 11px; margin-right: 4px; color: white; }
+.frow { display: flex; align-items: center; gap: 4px; }
+.frow.clickable { cursor: pointer; }
+.frow.clickable:hover { background: #f9fafb; }
+.caret { width: 12px; color: #9ca3af; font-size: 11px; }
+.fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.diff {
+  margin: 4px 0 8px 16px; padding: 6px 8px; background: #0d1117; border-radius: 6px;
+  overflow-x: auto; font-size: 12px; line-height: 1.5;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+.diff code { display: block; }
+.diff span { display: block; white-space: pre; color: #c9d1d9; }
+.diff .hunk { color: #8b949e; background: #161b22; }
+.diff .plus { color: #3fb950; background: rgba(63,185,80,.12); }
+.diff .minus { color: #f85149; background: rgba(248,81,73,.12); }
+.fstat { display: inline-block; width: 16px; text-align: center; border-radius: 3px; font-size: 11px; margin-right: 4px; color: white; flex-shrink: 0; }
 .fstat.added { background: #16a34a; }
 .fstat.modified { background: #ca8a04; }
 .fstat.removed { background: #dc2626; }

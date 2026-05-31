@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 from pydantic import BaseModel
@@ -122,19 +124,39 @@ async def get_pr(
     gh: GitHubClient = Depends(github_client),
 ):
     """单个 PR 的详情：基本信息 + 改了哪些文件 + CI 状态 + 评论。"""
+    # PR 本体是必需的；拿不到就直接报错
     try:
         pr = await gh.get_pr(repo, number)
-        files = await gh.list_pr_files(repo, number)
-        head_sha = pr["head"]["sha"]
-        combined = await gh.get_combined_status(repo, head_sha)
-        check_runs = await gh.list_check_runs(repo, head_sha)
-        comments = await gh.list_pr_comments(repo, number)
-        review_comments = await gh.list_review_comments(repo, number)
-        reviews = await gh.list_reviews(repo, number)
     except GitHubNotFound:
         raise HTTPException(404, f"PR #{number} 不存在")
     except GitHubError as e:
         raise HTTPException(e.status, e.message)
+
+    head_sha = pr["head"]["sha"]
+    # 其余 6 个辅助数据并发拉取；任一失败（如某 PAT 缺权限）只降级为默认值，
+    # 不让整个 PR 详情 500。比原来 6 次串行也快不少。
+    files, combined, check_runs, comments, review_comments, reviews = await asyncio.gather(
+        gh.list_pr_files(repo, number),
+        gh.get_combined_status(repo, head_sha),
+        gh.list_check_runs(repo, head_sha),
+        gh.list_pr_comments(repo, number),
+        gh.list_review_comments(repo, number),
+        gh.list_reviews(repo, number),
+        return_exceptions=True,
+    )
+
+    def _or(value, default):
+        if isinstance(value, Exception):
+            logger.warning("PR #{} 辅助数据获取失败（降级）：{}", number, value)
+            return default
+        return value
+
+    files = _or(files, [])
+    combined = _or(combined, {"statuses": []})
+    check_runs = _or(check_runs, [])
+    comments = _or(comments, [])
+    review_comments = _or(review_comments, [])
+    reviews = _or(reviews, [])
 
     return {
         "pr": _summarize_pr(pr),

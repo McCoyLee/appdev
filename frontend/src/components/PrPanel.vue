@@ -28,11 +28,47 @@ function toggleFile(name) {
   openFiles.value = s
 }
 
-function diffLineClass(ln) {
-  if (ln.startsWith('@@')) return 'hunk'
-  if (ln.startsWith('+')) return 'plus'
-  if (ln.startsWith('-')) return 'minus'
-  return ''
+// 把 patch 解析成 [{text, cls, line}]，line 是「改动后新版本」的行号（可点击评论）
+function parsePatch(patch) {
+  let newLn = 0
+  const out = []
+  for (const ln of patch.split('\n')) {
+    if (ln.startsWith('@@')) {
+      const m = ln.match(/\+(\d+)/)
+      newLn = m ? parseInt(m[1], 10) : newLn
+      out.push({ text: ln, cls: 'hunk', line: null })
+    } else if (ln.startsWith('+')) {
+      out.push({ text: ln, cls: 'plus', line: newLn }); newLn++
+    } else if (ln.startsWith('-')) {
+      out.push({ text: ln, cls: 'minus', line: null })
+    } else {
+      out.push({ text: ln, cls: '', line: newLn }); newLn++
+    }
+  }
+  return out
+}
+
+function reviewCommentsFor(file, line) {
+  if (line == null || !detail.value?.review_comments) return []
+  return detail.value.review_comments.filter((c) => c.path === file.filename && c.line === line)
+}
+
+// 当前正在写的行内评论草稿 { path, line, body }
+const reviewDraft = ref(null)
+function startReview(file, line) {
+  if (line == null) return
+  reviewDraft.value = { path: file.filename, line, body: '' }
+}
+async function submitReview() {
+  const d = reviewDraft.value
+  if (!d || !d.body.trim()) return
+  try {
+    const resp = await prsApi.reviewComment(detail.value.pr.number, d)
+    detail.value.review_comments.push(resp.data.comment)
+    reviewDraft.value = null
+  } catch (e) {
+    ElMessage.error('行内评论失败：' + (e.response?.data?.detail || e.message))
+  }
 }
 
 async function load() {
@@ -87,6 +123,7 @@ async function openDetail(number) {
   detailLoading.value = true
   detail.value = null
   openFiles.value = new Set()
+  reviewDraft.value = null
   try {
     const resp = await prsApi.get(number)
     detail.value = resp.data
@@ -220,7 +257,17 @@ onMounted(load)
                 <span class="fname">{{ f.filename }}</span>
                 <span class="add">+{{ f.additions }}</span> <span class="del">-{{ f.deletions }}</span>
               </div>
-              <pre v-if="f.patch && openFiles.has(f.filename)" class="diff"><code><span v-for="(ln, i) in f.patch.split('\n')" :key="i" :class="diffLineClass(ln)">{{ ln || ' ' }}</span></code></pre>
+              <div v-if="f.patch && openFiles.has(f.filename)" class="diff-wrap">
+                <pre class="diff"><code><template v-for="(row, i) in parsePatch(f.patch)" :key="i"><span class="dline" :class="[row.cls, { commentable: row.line != null }]" @click="startReview(f, row.line)"><span class="lno">{{ row.line ?? '' }}</span>{{ row.text || ' ' }}</span><span v-for="(rc, j) in reviewCommentsFor(f, row.line)" :key="'rc' + i + '-' + j" class="inline-rc">💬 <b>{{ rc.user }}</b>：{{ rc.body }}</span></template></code></pre>
+                <div v-if="reviewDraft && reviewDraft.path === f.filename" class="rc-box">
+                  <span class="dim">就「{{ f.filename }}」第 {{ reviewDraft.line }} 行：</span>
+                  <el-input v-model="reviewDraft.body" type="textarea" :rows="2" size="small" placeholder="行内评论…" />
+                  <div class="rc-actions">
+                    <el-button size="small" type="primary" @click="submitReview">发表</el-button>
+                    <el-button size="small" @click="reviewDraft = null">取消</el-button>
+                  </div>
+                </div>
+              </div>
             </li>
           </ul>
 
@@ -281,10 +328,17 @@ h4 { margin: 14px 0 6px; font-size: 13px; color: #6b7280; font-weight: 500; }
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
 }
 .diff code { display: block; }
-.diff span { display: block; white-space: pre; color: #c9d1d9; }
+.diff .dline { display: block; white-space: pre; color: #c9d1d9; }
+.diff .dline.commentable { cursor: pointer; }
+.diff .dline.commentable:hover { background: rgba(88,166,255,.18); }
+.diff .lno { display: inline-block; width: 34px; margin-right: 8px; color: #6e7681; text-align: right; user-select: none; }
 .diff .hunk { color: #8b949e; background: #161b22; }
 .diff .plus { color: #3fb950; background: rgba(63,185,80,.12); }
 .diff .minus { color: #f85149; background: rgba(248,81,73,.12); }
+.diff .inline-rc { display: block; white-space: pre-wrap; color: #adbac7; background: #1c2333; border-left: 2px solid #58a6ff; padding: 4px 8px 4px 42px; margin: 2px 0; }
+.diff .inline-rc b { color: #58a6ff; }
+.rc-box { margin: 6px 0 10px 16px; }
+.rc-actions { margin-top: 4px; display: flex; gap: 6px; }
 .fstat { display: inline-block; width: 16px; text-align: center; border-radius: 3px; font-size: 11px; margin-right: 4px; color: white; flex-shrink: 0; }
 .fstat.added { background: #16a34a; }
 .fstat.modified { background: #ca8a04; }

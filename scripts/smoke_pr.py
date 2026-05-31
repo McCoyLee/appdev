@@ -64,11 +64,19 @@ async def main() -> None:
         assert any(f["filename"] == fname for f in files), "PR 文件列表不含改动文件"
         print(f"5) detail ok: {len(files)} file(s), status={combined.get('state')}, {len(checks)} check-run(s)")
 
-        # 评论
+        # 评论（PR 级讨论）
         c = await gh.create_pr_comment(repo, num, "smoke 自动留言 👋")
         comments = await gh.list_pr_comments(repo, num)
         assert any("smoke 自动留言" in x["body"] for x in comments), "评论没写进去"
         print(f"6) comment ok ({len(comments)} comment(s))")
+
+        # 行内评论（绑定文件 + 行）
+        await gh.create_review_comment(
+            repo, num, "行内：这行是标题 ✅", commit_id=head_sha, path=fname, line=1
+        )
+        rcs = await gh.list_review_comments(repo, num)
+        assert any(x.get("path") == fname for x in rcs), "行内评论没写进去"
+        print(f"6b) review_comment ok (file={fname} line=1, {len(rcs)} 条)")
 
         # 合并（squash），失败则关闭兜底
         merged = False

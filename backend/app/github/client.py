@@ -361,6 +361,37 @@ class GitHubClient:
             json={"body": body},
         )
 
+    async def list_review_comments(self, repo: str, number: int) -> list[dict]:
+        """PR 的行内评论（绑定到具体文件 + 行）。"""
+        return await self._request(
+            "GET",
+            f"/repos/{repo}/pulls/{number}/comments",
+            params={"per_page": 100},
+        )
+
+    async def create_review_comment(
+        self,
+        repo: str,
+        number: int,
+        body: str,
+        commit_id: str,
+        path: str,
+        line: int,
+        side: str = "RIGHT",
+    ) -> dict:
+        """在 PR 的某文件某行发行内评论（side=RIGHT 指改动后的新版本行号）。"""
+        return await self._request(
+            "POST",
+            f"/repos/{repo}/pulls/{number}/comments",
+            json={
+                "body": body,
+                "commit_id": commit_id,
+                "path": path,
+                "line": line,
+                "side": side,
+            },
+        )
+
     async def get_combined_status(self, repo: str, ref: str) -> dict:
         """某个 ref 的合并 commit status（legacy status API）。"""
         return await self._request("GET", f"/repos/{repo}/commits/{ref}/status")

@@ -129,6 +129,7 @@ async def get_pr(
         combined = await gh.get_combined_status(repo, head_sha)
         check_runs = await gh.list_check_runs(repo, head_sha)
         comments = await gh.list_pr_comments(repo, number)
+        review_comments = await gh.list_review_comments(repo, number)
     except GitHubNotFound:
         raise HTTPException(404, f"PR #{number} 不存在")
     except GitHubError as e:
@@ -157,6 +158,17 @@ async def get_pr(
                 "html_url": c["html_url"],
             }
             for c in comments
+        ],
+        "review_comments": [
+            {
+                "user": c["user"]["login"] if c.get("user") else None,
+                "body": c["body"],
+                "path": c.get("path"),
+                "line": c.get("line") or c.get("original_line"),
+                "created_at": c["created_at"],
+                "html_url": c["html_url"],
+            }
+            for c in review_comments
         ],
     }
 
@@ -228,6 +240,53 @@ async def comment_pr(
         "comment": {
             "user": c["user"]["login"] if c.get("user") else None,
             "body": c["body"],
+            "created_at": c["created_at"],
+            "html_url": c["html_url"],
+        },
+    }
+
+
+class ReviewCommentIn(BaseModel):
+    path: str
+    line: int
+    body: str
+    side: str = "RIGHT"
+
+
+@router.post("/{number}/review-comment")
+async def review_comment_pr(
+    number: int,
+    payload: ReviewCommentIn,
+    repo: str = Depends(require_repo),
+    gh: GitHubClient = Depends(github_client),
+):
+    """在 PR 的某文件某行发行内评论（绑定到当前 head commit）。"""
+    if not payload.body.strip():
+        raise HTTPException(400, "评论内容不能为空")
+    if payload.side not in ("RIGHT", "LEFT"):
+        raise HTTPException(400, "side 只能是 RIGHT / LEFT")
+    try:
+        pr = await gh.get_pr(repo, number)
+        commit_id = pr["head"]["sha"]
+        c = await gh.create_review_comment(
+            repo, number, payload.body, commit_id, payload.path, payload.line, payload.side
+        )
+    except GitHubNotFound:
+        raise HTTPException(404, f"PR #{number} 不存在")
+    except GitHubError as e:
+        if e.status == 422:
+            raise HTTPException(
+                422,
+                f"发行内评论失败：{e.message}。常见原因：该行不在本次 diff 范围内。",
+            )
+        raise HTTPException(e.status, e.message)
+    return {
+        "ok": True,
+        "comment": {
+            "user": c["user"]["login"] if c.get("user") else None,
+            "body": c["body"],
+            "path": c.get("path"),
+            "line": c.get("line") or c.get("original_line"),
             "created_at": c["created_at"],
             "html_url": c["html_url"],
         },

@@ -8,9 +8,9 @@
 
 ## 当前状态（截至 2026-05-31）
 
-- **M0~M3 全部完成**（26 个任务）+ **M4-1~M4-4**（PR 协作 / PWA / diff / agent PR 工具）已做
-- 后端 25 个端点（+`/api/prs` 6 个）/ AI 16 个工具（+list_prs/comment_pr/merge_pr）/ 前端 13 个组件（+PrPanel）/ 6 个模板 / Tauri 骨架（未编译）/ PWA（manifest+sw，可安装）
-- M0~M3 已推送 `McCoyLee/appdev`（commit `e92462e`）；M4-1~M4-4 本地已提交，待推送
+- **M0~M3 全部完成**（26 个任务）+ **M4-1~M4-6**（PR 协作 / PWA / diff / agent PR 工具 / 拆包 / 行内评论）已做
+- 后端 26 个端点（+`/api/prs` 7 个）/ AI 16 个工具（+list_prs/comment_pr/merge_pr）/ 前端 13 个组件（+PrPanel）/ 6 个模板 / Tauri 骨架（未编译）/ PWA（manifest+sw，可安装）
+- 全部已推送 `McCoyLee/appdev`（M4 最新 commit 见 git log）；本地与远端同步
 
 ## 技术栈
 
@@ -49,7 +49,7 @@ backend/app/
 │   ├── chat.py             # POST /api/chat —— SSE 流式 agent 对话（核心）
 │   ├── projects.py         # 新建项目（create/init/create-stream）
 │   ├── branches.py         # 采纳/丢弃 ai/* 分支（FF→rebase→merge 三级）
-│   ├── prs.py              # M4 PR 协作：列表/详情(文件+CI+评论)/开/留言/合并/关闭
+│   ├── prs.py              # M4 PR 协作：列表/详情(文件+CI+评论+行内)/开/留言/行内评论/合并/关闭
 │   ├── preview.py          # 预览部署 + 一键放开 Pages 分支策略
 │   ├── probe.py            # 凭据连通性探测（github/ai/repos）
 │   ├── logs_stream.py      # workflow 日志 SSE 实时流
@@ -123,7 +123,7 @@ scripts/                    # smoke_*.py 烟雾测试 + init_template.py + dev.s
 ## 下一步（M4 候选，见进度.md 末尾）
 
 1. 桌面机上真编译 Tauri + PyInstaller sidecar，做到「双击即用」
-2. ~~PR 列表 + 多人协作~~ ✅ M4-1 已做；可继续做 PR review（行内 comment / approve）
+2. ~~PR 列表 + 多人协作~~ ✅ M4-1~M4-6 已做（含 diff + 行内评论 + agent 工具）；可继续做 PR approve/request-changes
 3. ~~移动端响应式 / PWA~~ ✅ M4-2 已做（手写 manifest+sw，可安装；窄屏堆叠）
 4. 多用户 SaaS（用户隔离 + 配额 + 计费）
 5. 国内 GitHub 加速反代内置

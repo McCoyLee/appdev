@@ -55,6 +55,8 @@ export const prsApi = {
   create: (body, repo) => http.post('/api/prs', body, { params: { repo } }),
   comment: (number, text, repo) =>
     http.post(`/api/prs/${number}/comment`, { body: text }, { params: { repo } }),
+  reviewComment: (number, { path, line, body, side = 'RIGHT' }, repo) =>
+    http.post(`/api/prs/${number}/review-comment`, { path, line, body, side }, { params: { repo } }),
   merge: (number, method = 'squash', repo) =>
     http.post(`/api/prs/${number}/merge`, { method, delete_branch: true, dispatch_pages: true }, { params: { repo } }),
   close: (number, repo) => http.post(`/api/prs/${number}/close`, null, { params: { repo } }),

@@ -8,8 +8,8 @@
 
 ## 当前状态（截至 2026-05-31）
 
-- **M0~M3 全部完成**（26 个任务）+ **M4-1~M4-6**（PR 协作 / PWA / diff / agent PR 工具 / 拆包 / 行内评论）已做
-- 后端 26 个端点（+`/api/prs` 7 个）/ AI 16 个工具（+list_prs/comment_pr/merge_pr）/ 前端 13 个组件（+PrPanel）/ 6 个模板 / Tauri 骨架（未编译）/ PWA（manifest+sw，可安装）
+- **M0~M3 全部完成**（26 个任务）+ **M4-1~M4-7**（PR 协作闭环 / PWA / diff / agent PR 工具 / 拆包 / 行内评论 / 读反馈）已做
+- 后端 26 个端点（+`/api/prs` 7 个）/ AI 18 个工具（+list_prs/comment_pr/read_pr_feedback/merge_pr）/ 前端 13 个组件（+PrPanel）/ 6 个模板 / Tauri 骨架（未编译）/ PWA（manifest+sw，可安装）
 - 全部已推送 `McCoyLee/appdev`（M4 最新 commit 见 git log）；本地与远端同步
 
 ## 技术栈

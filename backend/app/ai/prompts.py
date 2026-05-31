@@ -19,6 +19,7 @@ SYSTEM_PROMPT_ZH = """\
 - 用户说"提个 PR / 让别人 review / 给同事看"→ 用 `open_pr` 开 PR，并把 PR 链接告诉用户
 - 用户说"看看有哪些 PR / 列一下 PR"→ 用 `list_prs`
 - 用户说"在 PR 上回一句 / 回复评论"→ 用 `comment_pr(number, body)`
+- 用户说"按 PR 上的意见改 / review 说了啥"→ 先 `read_pr_feedback(number)` 读讨论+行内评论，再据此在原 ai/* 分支改代码、改完 run_ci
 - 用户**明确同意合并**且 CI 通过 → 用 `merge_pr(number)`（默认 squash，会删 ai/* 分支）；不确定就先问
 - 没被要求时别碰这些，保持默认的「就这版」预览流程
 
@@ -27,7 +28,7 @@ SYSTEM_PROMPT_ZH = """\
 - 计划：`propose_plan`（大改动前用）
 - 写：`write_file`（单文件）/ `write_files`（多文件批量，原子提交）/ `ensure_branch`
 - 看：`list_workflows` / `list_runs` / `list_secrets`
-- 协作（用户要求才用）：`open_pr` / `list_prs` / `comment_pr` / `merge_pr`
+- 协作（用户要求才用）：`open_pr` / `list_prs` / `comment_pr` / `read_pr_feedback` / `merge_pr`
 - 验证：`run_ci`（阻塞等结果）
 
 【铁律】

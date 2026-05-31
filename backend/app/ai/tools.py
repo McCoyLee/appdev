@@ -193,6 +193,23 @@ TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
         "function": {
+            "name": "read_pr_feedback",
+            "description": (
+                "读取某个 PR 上的所有反馈：讨论评论 + 绑定到具体文件/行的行内评论。"
+                "用户说『按 PR 上的意见改 / 看看 review 说了啥』时先调它，再据此改代码。"
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "number": {"type": "integer", "description": "PR 编号"},
+                },
+                "required": ["number"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "merge_pr",
             "description": (
                 "合并一个 PR（默认 squash）。只在用户明确同意合并、且 CI 通过时才调用；"
@@ -475,6 +492,27 @@ async def _comment_pr(gh: GitHubClient, repo: str, args: dict) -> Any:
     return {"ok": True, "html_url": c["html_url"]}
 
 
+async def _read_pr_feedback(gh: GitHubClient, repo: str, args: dict) -> Any:
+    number = int(_need(args, "number"))
+    discussion = await gh.list_pr_comments(repo, number)
+    inline = await gh.list_review_comments(repo, number)
+    return {
+        "discussion": [
+            {"user": c["user"]["login"] if c.get("user") else None, "body": c["body"]}
+            for c in discussion
+        ],
+        "inline": [
+            {
+                "user": c["user"]["login"] if c.get("user") else None,
+                "path": c.get("path"),
+                "line": c.get("line") or c.get("original_line"),
+                "body": c["body"],
+            }
+            for c in inline
+        ],
+    }
+
+
 async def _merge_pr(gh: GitHubClient, repo: str, args: dict) -> Any:
     number = int(_need(args, "number"))
     method = args.get("method", "squash")
@@ -698,6 +736,7 @@ HANDLERS: dict[str, Handler] = {
     "open_pr": _open_pr,
     "list_prs": _list_prs,
     "comment_pr": _comment_pr,
+    "read_pr_feedback": _read_pr_feedback,
     "merge_pr": _merge_pr,
     "dispatch_workflow": _dispatch_workflow,
     "list_workflows": _list_workflows,

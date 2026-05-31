@@ -54,6 +54,15 @@ async def main() -> None:
         assert r["ok"], r
         print("3) comment_pr ✓")
 
+        # 留个行内评论，再让 agent 读 PR 反馈（read_pr_feedback）
+        head_sha = (await gh.get_pr(repo, num))["head"]["sha"]
+        await gh.create_review_comment(repo, num, "这行建议改下", commit_id=head_sha, path=fname, line=1)
+        r = await dispatch(gh, repo, "read_pr_feedback", {"number": num})
+        assert r["ok"], r
+        assert any("自动留言" in c["body"] for c in r["result"]["discussion"]), r
+        assert any(c["path"] == fname for c in r["result"]["inline"]), r
+        print(f"3b) read_pr_feedback ✓（讨论 {len(r['result']['discussion'])}，行内 {len(r['result']['inline'])}）")
+
         # 错误参数被优雅捕获
         r = await dispatch(gh, repo, "merge_pr", {"number": num, "method": "bogus"})
         assert not r["ok"] and "bad arguments" in r["error"], r

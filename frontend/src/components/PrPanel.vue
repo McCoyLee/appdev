@@ -181,6 +181,41 @@ async function sendComment() {
   }
 }
 
+const REVIEW_STATE = {
+  APPROVED: { type: 'success', text: '✅ 已批准' },
+  CHANGES_REQUESTED: { type: 'danger', text: '🔧 请求修改' },
+  COMMENTED: { type: 'info', text: '💬 评论' },
+  DISMISSED: { type: 'info', text: '已撤销' },
+}
+
+async function submitPrReview(event) {
+  const num = detail.value.pr.number
+  let body = ''
+  if (event === 'approve') {
+    try {
+      await ElMessageBox.confirm('批准这个 PR？', '批准', { confirmButtonText: '批准', type: 'success' })
+    } catch { return }
+  } else {
+    try {
+      const r = await ElMessageBox.prompt(
+        event === 'request_changes' ? '说说哪里需要改：' : '写下评审意见：',
+        event === 'request_changes' ? '请求修改' : '评审意见',
+        { inputType: 'textarea', confirmButtonText: '提交' }
+      )
+      body = (r.value || '').trim()
+    } catch { return }
+    if (!body) return
+  }
+  try {
+    const resp = await prsApi.review(num, event, body)
+    if (!detail.value.reviews) detail.value.reviews = []
+    detail.value.reviews.push(resp.data.review)
+    ElMessage.success('评审已提交')
+  } catch (e) {
+    ElMessage.error('提交评审失败：' + (e.response?.data?.detail || e.message))
+  }
+}
+
 async function mergePr() {
   const num = detail.value.pr.number
   try {
@@ -332,9 +367,26 @@ onMounted(load)
             <el-button size="small" @click="sendComment">发表</el-button>
           </div>
 
+          <h4 v-if="detail.reviews && detail.reviews.length">评审（{{ detail.reviews.length }}）</h4>
+          <ul class="reviews" v-if="detail.reviews && detail.reviews.length">
+            <li v-for="(r, i) in detail.reviews" :key="i">
+              <el-tag size="small" :type="(REVIEW_STATE[r.state] || REVIEW_STATE.COMMENTED).type">
+                {{ (REVIEW_STATE[r.state] || { text: r.state }).text }}
+              </el-tag>
+              <b>{{ r.user }}</b>
+              <span v-if="r.body" class="dim">— {{ r.body }}</span>
+            </li>
+          </ul>
+
           <div class="actions" v-if="detail.pr.state === 'open' && !detail.pr.merged">
             <el-button type="success" :loading="merging" @click="mergePr">合并这版 ✅</el-button>
             <el-button @click="closePr">关闭不合并</el-button>
+          </div>
+          <div class="review-actions" v-if="detail.pr.state === 'open' && !detail.pr.merged">
+            <span class="dim">评审：</span>
+            <el-button size="small" type="success" plain @click="submitPrReview('approve')">批准</el-button>
+            <el-button size="small" type="danger" plain @click="submitPrReview('request_changes')">请求修改</el-button>
+            <el-button size="small" plain @click="submitPrReview('comment')">评审意见</el-button>
           </div>
         </template>
       </div>
@@ -385,5 +437,8 @@ h4 { margin: 14px 0 6px; font-size: 13px; color: #6b7280; font-weight: 500; }
 .comment { padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
 .comment b { margin-right: 6px; }
 .comment-box { display: flex; gap: 6px; align-items: flex-end; margin-top: 8px; }
+.reviews { list-style: none; padding: 0; margin: 0; font-size: 13px; }
+.reviews li { padding: 3px 0; display: flex; align-items: center; gap: 6px; }
 .actions { margin-top: 16px; display: flex; gap: 8px; }
+.review-actions { margin-top: 8px; display: flex; align-items: center; gap: 6px; }
 </style>

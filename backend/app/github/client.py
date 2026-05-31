@@ -392,6 +392,27 @@ class GitHubClient:
             },
         )
 
+    async def list_reviews(self, repo: str, number: int) -> list[dict]:
+        """PR 的 review（approve / request_changes / comment 级别的整体评审）。"""
+        return await self._request(
+            "GET",
+            f"/repos/{repo}/pulls/{number}/reviews",
+            params={"per_page": 100},
+        )
+
+    async def submit_review(
+        self, repo: str, number: int, event: str, body: str = ""
+    ) -> dict:
+        """提交一次 PR 评审。event: APPROVE | REQUEST_CHANGES | COMMENT。"""
+        payload: dict = {"event": event}
+        if body:
+            payload["body"] = body
+        return await self._request(
+            "POST",
+            f"/repos/{repo}/pulls/{number}/reviews",
+            json=payload,
+        )
+
     async def get_combined_status(self, repo: str, ref: str) -> dict:
         """某个 ref 的合并 commit status（legacy status API）。"""
         return await self._request("GET", f"/repos/{repo}/commits/{ref}/status")

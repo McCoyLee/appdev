@@ -78,6 +78,17 @@ async def main() -> None:
         assert any(x.get("path") == fname for x in rcs), "行内评论没写进去"
         print(f"6b) review_comment ok (file={fname} line=1, {len(rcs)} 条)")
 
+        # 评审：COMMENT 在自己 PR 上允许；APPROVE 应被 GitHub 拒（422）
+        await gh.submit_review(repo, num, "COMMENT", "整体看着不错 👍")
+        reviews = await gh.list_reviews(repo, num)
+        assert any(r.get("state") == "COMMENTED" for r in reviews), "COMMENT 评审没记上"
+        try:
+            await gh.submit_review(repo, num, "APPROVE")
+            raise AssertionError("APPROVE 自己的 PR 居然没报错？")
+        except GitHubError as e:
+            assert e.status == 422, f"期望 422，实际 {e.status}"
+        print(f"6c) submit_review COMMENT ok（{len(reviews)} 条）；APPROVE 自审被拒 422 ✓")
+
         # 合并（squash），失败则关闭兜底
         merged = False
         try:

@@ -130,6 +130,7 @@ async def get_pr(
         check_runs = await gh.list_check_runs(repo, head_sha)
         comments = await gh.list_pr_comments(repo, number)
         review_comments = await gh.list_review_comments(repo, number)
+        reviews = await gh.list_reviews(repo, number)
     except GitHubNotFound:
         raise HTTPException(404, f"PR #{number} 不存在")
     except GitHubError as e:
@@ -169,6 +170,17 @@ async def get_pr(
                 "html_url": c["html_url"],
             }
             for c in review_comments
+        ],
+        # 只保留有正式评审动作的（APPROVED / CHANGES_REQUESTED / COMMENTED）
+        "reviews": [
+            {
+                "user": r["user"]["login"] if r.get("user") else None,
+                "state": r.get("state"),
+                "body": r.get("body") or "",
+                "submitted_at": r.get("submitted_at"),
+            }
+            for r in reviews
+            if r.get("state")
         ],
     }
 
@@ -308,6 +320,53 @@ async def review_comment_pr(
             "line": c.get("line") or c.get("original_line"),
             "created_at": c["created_at"],
             "html_url": c["html_url"],
+        },
+    }
+
+
+class SubmitReviewIn(BaseModel):
+    event: str  # approve | request_changes | comment
+    body: str = ""
+
+
+_REVIEW_EVENTS = {
+    "approve": "APPROVE",
+    "request_changes": "REQUEST_CHANGES",
+    "comment": "COMMENT",
+}
+
+
+@router.post("/{number}/review")
+async def submit_review(
+    number: int,
+    payload: SubmitReviewIn,
+    repo: str = Depends(require_repo),
+    gh: GitHubClient = Depends(github_client),
+):
+    """提交一次 PR 评审：批准 / 请求修改 / 仅评论。"""
+    event = _REVIEW_EVENTS.get(payload.event.lower())
+    if not event:
+        raise HTTPException(400, "event 只能是 approve / request_changes / comment")
+    if event != "APPROVE" and not payload.body.strip():
+        raise HTTPException(400, "请求修改 / 评论 必须填写内容")
+    try:
+        r = await gh.submit_review(repo, number, event, payload.body)
+    except GitHubNotFound:
+        raise HTTPException(404, f"PR #{number} 不存在")
+    except GitHubError as e:
+        if e.status == 422:
+            raise HTTPException(
+                422,
+                f"提交评审失败：{e.message}。注意 GitHub 不允许批准/打回自己开的 PR。",
+            )
+        raise HTTPException(e.status, e.message)
+    return {
+        "ok": True,
+        "review": {
+            "user": r["user"]["login"] if r.get("user") else None,
+            "state": r.get("state"),
+            "body": r.get("body") or "",
+            "submitted_at": r.get("submitted_at"),
         },
     }
 
